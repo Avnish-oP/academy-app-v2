@@ -20,8 +20,19 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     // Register service worker
     if ('serviceWorker' in navigator) {
+      // First, unregister any existing service workers to clear cache issues
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          if (registration.scope.includes('academy')) {
+            console.log('Unregistering old service worker');
+            registration.unregister();
+          }
+        }
+      });
+
+      // Register the new service worker
       navigator.serviceWorker
-        .register('/sw.js')
+        .register('/sw.js', { scope: '/' })
         .then((registration) => {
           console.log('SW registered: ', registration);
           
@@ -36,6 +47,9 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
               });
             }
           });
+
+          // Force update check
+          registration.update();
 
           // Request notification permission
           if ('Notification' in window && Notification.permission === 'default') {

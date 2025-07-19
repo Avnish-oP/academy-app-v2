@@ -1,6 +1,6 @@
-const CACHE_NAME = 'academypro-v2';
-const STATIC_CACHE = 'academypro-static-v2';
-const DYNAMIC_CACHE = 'academypro-dynamic-v2';
+const CACHE_NAME = 'academypro-v3';
+const STATIC_CACHE = 'academypro-static-v3';
+const DYNAMIC_CACHE = 'academypro-dynamic-v3';
 
 const staticAssets = [
   '/',
@@ -63,16 +63,45 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Handle API requests with network-first strategy
+  // Skip non-GET requests (POST, PUT, DELETE, etc.) - these cannot be cached
+  if (request.method !== 'GET') {
+    console.log('Service Worker: Skipping non-GET request:', request.method, url.pathname);
+    return; // Let the request go through without service worker intervention
+  }
+
+  // Skip Chrome extension requests
+  if (url.protocol === 'chrome-extension:') {
+    return;
+  }
+
+  // Skip authentication and sensitive API routes
+  const skipAuthPaths = [
+    '/api/auth/login',
+    '/api/auth/logout',
+    '/api/auth/verify',
+    '/api/admin/users',
+    '/api/admin/notifications'
+  ];
+
+  if (skipAuthPaths.some(path => url.pathname.startsWith(path))) {
+    console.log('Service Worker: Skipping auth route:', url.pathname);
+    return; // Let auth requests go through without caching
+  }
+
+  // Handle API requests with network-first strategy (only GET requests)
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Clone the response before caching
-          const responseClone = response.clone();
-          caches.open(DYNAMIC_CACHE).then((cache) => {
-            cache.put(request, responseClone);
-          });
+          // Only cache successful GET responses
+          if (response.ok && request.method === 'GET') {
+            const responseClone = response.clone();
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+              cache.put(request, responseClone).catch((error) => {
+                console.log('Service Worker: Failed to cache API response:', error);
+              });
+            });
+          }
           return response;
         })
         .catch(() => {
@@ -91,15 +120,17 @@ self.addEventListener('fetch', (event) => {
       }
 
       return fetch(request).then((response) => {
-        // Don't cache non-successful responses
-        if (!response || response.status !== 200 || response.type !== 'basic') {
+        // Don't cache non-successful responses or non-GET requests
+        if (!response || response.status !== 200 || response.type !== 'basic' || request.method !== 'GET') {
           return response;
         }
 
         // Clone the response before caching
         const responseClone = response.clone();
         caches.open(DYNAMIC_CACHE).then((cache) => {
-          cache.put(request, responseClone);
+          cache.put(request, responseClone).catch((error) => {
+            console.log('Service Worker: Failed to cache static response:', error);
+          });
         });
 
         return response;
@@ -215,8 +246,17 @@ self.addEventListener('message', (event) => {
 // Handle errors
 self.addEventListener('error', (event) => {
   console.error('Service Worker error:', event.error);
+  event.preventDefault(); // Prevent the error from bubbling up
 });
 
 self.addEventListener('unhandledrejection', (event) => {
   console.error('Service Worker unhandled promise rejection:', event.reason);
+  event.preventDefault(); // Prevent the rejection from bubbling up
+  
+  // If it's a cache-related error, log it but don't let it break the app
+  if (event.reason && event.reason.message && 
+      (event.reason.message.includes('Request method') || 
+       event.reason.message.includes('Cache'))) {
+    console.log('Service Worker: Cache operation failed, continuing without caching');
+  }
 });
