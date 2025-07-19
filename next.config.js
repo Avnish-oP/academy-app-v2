@@ -15,6 +15,23 @@ const nextConfig = {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
   
+  // Handle LightningCSS native module issues
+  webpack: (config, { dev, isServer }) => {
+    if (!dev && !isServer) {
+      // Handle missing native modules in production builds
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        'lightningcss-linux-x64-gnu': false,
+        'lightningcss-darwin-x64': false,
+        'lightningcss-win32-x64-msvc': false,
+      };
+    }
+    return config;
+  },
+  
+  // Output configuration for deployment
+  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
+  
   // Headers for security
   async headers() {
     return [

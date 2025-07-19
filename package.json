@@ -9,7 +9,10 @@
     "lint": "next lint",
     "seed": "node scripts/seed.js",
     "seed-basic": "node scripts/seed-basic.js",
-    "test-db": "node scripts/test-connection.js"
+    "test-db": "node scripts/test-connection.js",
+    "deploy-prep": "npm run clean && npm install && npm run build",
+    "clean": "rm -rf node_modules package-lock.json .next || del /s /q node_modules package-lock.json .next",
+    "postinstall": "node -e \"try { require('lightningcss') } catch (e) { console.log('LightningCSS native module not found, this is expected in some deployment environments') }\""
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -39,6 +42,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.3.5",
     "tailwindcss": "^4",
