@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { GraduationCap, Eye, EyeOff, Lock, User } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -12,6 +14,19 @@ export default function LoginPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const { user, login } = useAuth();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/home');
+      }
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,14 +44,14 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // Store user data in localStorage
-        localStorage.setItem('user', JSON.stringify(data.user));
+        // Use AuthContext login method
+        login(data.user);
         
         // Redirect based on user type
-        if (formData.userType === 'admin') {
-          window.location.href = '/admin';
+        if (data.user.role === 'admin') {
+          router.push('/admin');
         } else {
-          window.location.href = '/home';
+          router.push('/home');
         }
       } else {
         alert(data.error || 'Login failed');

@@ -9,6 +9,8 @@
     "lint": "next lint",
     "seed": "node scripts/seed.js",
     "seed-basic": "node scripts/seed-basic.js",
+    "seed-complete": "node scripts/seed-complete.js",
+    "seed-academic": "node scripts/seed-academic.js",
     "test-db": "node scripts/test-connection.js",
     "deploy-prep": "npm run clean && npm install && npm run build",
     "clean": "rm -rf node_modules package-lock.json .next || del /s /q node_modules package-lock.json .next",

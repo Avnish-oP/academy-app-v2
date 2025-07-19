@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from "../../components/Navbar";
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   Users, 
   BookOpen, 
@@ -41,8 +43,9 @@ interface Class {
 }
 
 export default function AdminDashboard() {
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [user, setUser] = useState<any>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(false);
@@ -64,33 +67,24 @@ export default function AdminDashboard() {
     password: ''
   });
 
+  // Redirect if not authenticated or not admin
   useEffect(() => {
-    // Get user data from localStorage
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      if (parsedUser.role !== 'admin') {
-        window.location.href = '/home';
+    if (!isLoading) {
+      if (!user) {
+        router.push('/login');
         return;
       }
-    } else {
-      window.location.href = '/login';
-      return;
+      if (user.role !== 'admin') {
+        router.push('/home');
+        return;
+      }
+      // User is authenticated and is admin, load initial data
+      loadClasses();
+      if (activeTab === 'users') {
+        loadUsers();
+      }
     }
-
-    // Load initial data
-    loadClasses();
-    if (activeTab === 'users') {
-      loadUsers();
-    }
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === 'users') {
-      loadUsers();
-    }
-  }, [activeTab]);
+  }, [user, isLoading, router, activeTab]);
 
   const loadUsers = async () => {
     try {
@@ -520,6 +514,20 @@ export default function AdminDashboard() {
       )}
     </div>
   );
+
+  // Show loading while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

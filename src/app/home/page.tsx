@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../components/Navbar';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface User {
   _id: string;
@@ -51,40 +52,35 @@ interface Notification {
 }
 
 export default function HomePage() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, isLoading } = useAuth();
   const [updates, setUpdates] = useState<Update[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
   const router = useRouter();
 
+  // Redirect if not authenticated or if admin user
   useEffect(() => {
-    // Get user data from localStorage (stored during login)
-    const userData = localStorage.getItem('user');
-    if (!userData) {
-      router.push('/login');
-      return;
-    }
-
-    try {
-      const user = JSON.parse(userData);
-      setUser(user);
-      
-      // Fetch all data
+    if (!isLoading) {
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+      if (user.role === 'admin') {
+        router.push('/admin');
+        return;
+      }
+      // User is authenticated and is a student, fetch data
       fetchData(user);
-    } catch (error) {
-      console.error('Error parsing user data:', error);
-      localStorage.removeItem('user');
-      router.push('/login');
     }
-  }, [router]);
+  }, [user, isLoading, router]);
 
-  const fetchData = async (user: User) => {
+  const fetchData = async (currentUser: any) => {
     try {
       // Fetch all data in parallel
       const [updatesRes, materialsRes, notificationsRes] = await Promise.all([
         fetch('/api/updates'),
-        fetch(`/api/materials?classId=${user.classId}`),
+        fetch(`/api/materials?classId=${currentUser.classId}`),
         fetch('/api/notifications')
       ]);
 
@@ -93,7 +89,7 @@ export default function HomePage() {
         const updatesData = await updatesRes.json();
         const filteredUpdates = updatesData.filter((update: Update) => 
           !update.targetClasses.length || 
-          update.targetClasses.includes(user.classId || '') ||
+          update.targetClasses.includes(currentUser.classId || '') ||
           update.targetClasses.includes('all')
         );
         setUpdates(filteredUpdates);
@@ -118,7 +114,7 @@ export default function HomePage() {
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
-      setLoading(false);
+      setDataLoading(false);
     }
   };
 
@@ -137,7 +133,7 @@ export default function HomePage() {
     }
   };
 
-  if (loading) {
+  if (isLoading || dataLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar isAdmin={user?.role === 'admin'} />

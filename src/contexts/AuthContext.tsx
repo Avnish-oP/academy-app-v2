@@ -7,7 +7,10 @@ interface User {
   name: string;
   email: string;
   role: string;
+  username?: string;
   studentId?: string;
+  classId?: string;
+  phone?: string;
   avatar?: string;
 }
 

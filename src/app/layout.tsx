@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import PWAProvider from "./components/PWAProvider";
+import { AuthProvider } from "../contexts/AuthContext";
 
 export const metadata: Metadata = {
   title: "Academy Pro - Complete Learning Management System",
@@ -66,9 +67,11 @@ export default function RootLayout({
         <link rel="shortcut icon" href="/favicon.ico" />
       </head>
       <body className="font-sans antialiased">
-        <PWAProvider>
-          {children}
-        </PWAProvider>
+        <AuthProvider>
+          <PWAProvider>
+            {children}
+          </PWAProvider>
+        </AuthProvider>
       </body>
     </html>
   );
